@@ -162,6 +162,7 @@ class FacebookAdsApi(object):
     }
 
     _default_api = None
+    _default_api_container = None
     _default_account_id = None
 
     def __init__(self, session, api_version=None):
@@ -193,12 +194,18 @@ class FacebookAdsApi(object):
         account_id=None,
         api_version=None,
         proxies=None,
-        timeout=None
+        timeout=None,
+        api_container=None,
     ):
-        session = FacebookSession(app_id, app_secret, access_token, proxies,
-                                  timeout)
-        api = cls(session, api_version)
+        if api_container:
+            api = api_container.get_api()
+        else:
+            session = FacebookSession(app_id, app_secret, access_token, proxies,
+                                      timeout)
+            api = cls(session, api_version)
+            api_container = api_utils.ApiContainer([api])
         cls.set_default_api(api)
+        cls.set_default_api_container(api_container)
 
         if account_id:
             cls.set_default_account_id(account_id)
@@ -215,9 +222,24 @@ class FacebookAdsApi(object):
         cls._default_api = api_instance
 
     @classmethod
+    def set_default_api_container(cls, api_container_instance):
+        """Sets the default api instance.
+        When making calls to the api, objects will revert to using the default
+        api if one is not specified when initializing the objects.
+        Args:
+            api_instance: The instance which to set as default.
+        """
+        cls._default_api_container = api_container_instance
+
+    @classmethod
     def get_default_api(cls):
         """Returns the default api instance."""
         return cls._default_api
+
+    @classmethod
+    def get_default_api_container(cls):
+        """Returns the default api instance."""
+        return cls._default_api_container
 
     @classmethod
     def set_default_account_id(cls, account_id):
@@ -649,6 +671,7 @@ class FacebookRequest:
     def get_params(self):
         return copy.deepcopy(self._params)
 
+    @api_utils.request_execution_retry(FacebookAdsApi, exception=FacebookRequestError)
     def execute(self):
         params = copy.deepcopy(self._params)
         if self._api_type == "EDGE" and self._method == "GET":
