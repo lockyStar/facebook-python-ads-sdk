@@ -257,13 +257,15 @@ class FacebookAdsApi(object):
 
     def call(self, *args, **kwargs):
         import time
-        delay = 30
+        delay = 5
+        backoff = 2
         __api = self
         while True:
             try:
-                __api.real_call(*args, **kwargs)
+                return __api.real_call(*args, **kwargs)
             except FacebookRequestError as e:
                 time.sleep(delay)
+                delay *= backoff
                 __api.__class__.get_default_api_container().to_awaiting(__api)
                 __api = __api.__class__.get_default_api_container().get_api()
 

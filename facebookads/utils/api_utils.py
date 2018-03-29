@@ -46,8 +46,9 @@ class ApiContainer:
         return self.api_list[0]
 
     def to_awaiting(self, api):
-        self.api_list.remove(api)
         self.awaiting_apis.append(api)
+        if api in self.api_list:
+            self.api_list.remove(api)
 
 
 def request_execution_retry(cls, delay=6, backoff=2, exception=Exception):
